@@ -45,6 +45,8 @@ import {
   handleMediumCallback,
   handleTerminalUI,
   handleTerminalUICallback,
+  handleNotification,
+  handleNotificationCallback,
   handleTranscribe,
   handleTranscribeAudio,
   handleTranscribeDocument,
@@ -132,6 +134,7 @@ export async function createBot(): Promise<Bot> {
     ...(config.OPENCODE_ENABLED ? [{ command: 'provider', description: '🔌 Switch AI provider' }] : []),
     { command: 'mode', description: '⚙️ Toggle streaming mode' },
     { command: 'terminalui', description: '🖥️ Toggle terminal-style display' },
+    { command: 'notification', description: '🔔 Toggle completion notifications' },
     { command: 'tts', description: '🔊 Toggle voice replies' },
     { command: 'ping', description: '🏓 Check if bot is responsive' },
     { command: 'commands', description: '📜 List all commands' },
@@ -164,6 +167,7 @@ export async function createBot(): Promise<Bot> {
   bot.command('status', handleStatus);
   bot.command('mode', handleMode);
   bot.command('terminalui', handleTerminalUI);
+  bot.command('notification', handleNotification);
   bot.command('tts', handleTTS);
   bot.command('botstatus', handleBotStatus);
   bot.command('restartbot', handleRestartBot);
@@ -227,6 +231,8 @@ export async function createBot(): Promise<Bot> {
       await handleModeCallback(ctx);
     } else if (data.startsWith('terminalui:')) {
       await handleTerminalUICallback(ctx);
+    } else if (data.startsWith('notification:')) {
+      await handleNotificationCallback(ctx);
     } else if (data.startsWith('tts:')) {
       await handleTTSCallback(ctx);
     } else if (data.startsWith('telegraph:')) {

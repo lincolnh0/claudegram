@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { processMessageForTelegram, escapeMarkdownV2, splitMessage } from './markdown.js';
 import { shouldUseTelegraph, createTelegraphPage, createTelegraphFromFile } from './telegraph.js';
 import { isTerminalUIEnabled } from './terminal-settings.js';
+import { isNotificationEnabled } from './notification-settings.js';
 import {
   getSpinnerFrame,
   getToolIcon,
@@ -497,7 +498,8 @@ export class MessageSender {
    * needs this to alert the user when a long task finishes.
    */
   async sendCompletionNotification(ctx: Context, elapsedMs: number): Promise<void> {
-    if (!config.NOTIFICATION_ENABLED) return;
+    const keyInfo = getSessionKeyFromCtx(ctx);
+    if (!keyInfo || !isNotificationEnabled(keyInfo.sessionKey)) return;
     if (elapsedMs < config.NOTIFICATION_THRESHOLD_SECONDS * 1000) return;
 
     try {
