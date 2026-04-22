@@ -201,8 +201,7 @@ const envSchema = z.object({
     .transform((val) => parseInt(val, 10)), // 0 = disabled
   // HTTP proxy for Telegram API requests (e.g. socks5://127.0.0.1:1080 or http://proxy:8080)
   TELEGRAM_PROXY_URL: z.string().optional(),
-  // Completion notification (send a new message after long streaming tasks)
-  NOTIFICATION_ENABLED: z.string().default('true').transform(toBool),
+  // Completion notification threshold (send "Done" push after tasks longer than this)
   NOTIFICATION_THRESHOLD_SECONDS: z
     .string()
     .default('60')

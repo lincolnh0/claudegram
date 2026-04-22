@@ -33,6 +33,7 @@ import { isMediumUrl, fetchMediumArticle, FreediumArticle } from '../../medium/f
 import { escapeMarkdownV2 as esc } from '../../telegram/markdown.js';
 import { getTTSSettings, setTTSEnabled, setTTSVoice, setTTSAutoplay } from '../../tts/tts-settings.js';
 import { getTerminalUISettings, setTerminalUIEnabled } from '../../telegram/terminal-settings.js';
+import { getNotificationSettings, setNotificationEnabled } from '../../telegram/notification-settings.js';
 import { getTelegraphSettings, setTelegraphEnabled } from '../../telegram/telegraph-settings.js';
 import { maybeSendVoiceReply } from '../../tts/voice-reply.js';
 import { transcribeFile, downloadTelegramAudio } from '../../audio/transcribe.js';
@@ -969,6 +970,63 @@ export async function handleTerminalUICallback(ctx: Context): Promise<void> {
   await ctx.answerCallbackQuery({ text: `Terminal UI ${statusText}!` });
   await ctx.editMessageText(
     `✅ Terminal UI *${statusText}*\n\n${description}`,
+    { parse_mode: 'MarkdownV2' }
+  );
+}
+
+export async function handleNotification(ctx: Context): Promise<void> {
+  const keyInfo = getSessionKeyFromCtx(ctx);
+  if (!keyInfo) return;
+  const { sessionKey } = keyInfo;
+
+  const settings = getNotificationSettings(sessionKey);
+  const currentStatus = settings.enabled ? 'ON' : 'OFF';
+
+  const keyboard = [
+    [
+      {
+        text: settings.enabled ? '✓ On' : 'On',
+        callback_data: 'notification:on',
+      },
+      {
+        text: !settings.enabled ? '✓ Off' : 'Off',
+        callback_data: 'notification:off',
+      },
+    ],
+  ];
+
+  const description = settings.enabled
+    ? '_Sends a "Done" message after long tasks to trigger a push notification_'
+    : '_No push notification will be sent when long tasks complete_';
+
+  await ctx.reply(
+    `🔔 *Completion Notification*\n\nCurrent: *${currentStatus}*\n${description}`,
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: { inline_keyboard: keyboard },
+    }
+  );
+}
+
+export async function handleNotificationCallback(ctx: Context): Promise<void> {
+  const keyInfo = getSessionKeyFromCtx(ctx);
+  if (!keyInfo) return;
+  const { sessionKey } = keyInfo;
+
+  const data = ctx.callbackQuery?.data;
+  if (!data || !data.startsWith('notification:')) return;
+
+  const newState = data.replace('notification:', '') === 'on';
+  setNotificationEnabled(sessionKey, newState);
+
+  const statusText = newState ? 'ON' : 'OFF';
+  const description = newState
+    ? '_Sends a "Done" message after long tasks to trigger a push notification_'
+    : '_No push notification will be sent when long tasks complete_';
+
+  await ctx.answerCallbackQuery({ text: `Completion notification ${statusText}!` });
+  await ctx.editMessageText(
+    `✅ Completion Notification *${statusText}*\n\n${description}`,
     { parse_mode: 'MarkdownV2' }
   );
 }
