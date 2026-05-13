@@ -5,6 +5,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { config } from '../config.js';
 import { buildSessionKey } from '../utils/session-key.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
+import { mentionGateMiddleware } from './middleware/mention-gate.middleware.js';
 import {
   handleStart,
   handleClear,
@@ -148,6 +149,10 @@ export async function createBot(): Promise<Bot> {
 
   // Apply auth middleware to all updates
   bot.use(authMiddleware);
+
+  // Mention-required gate: in groups, drop messages that aren't addressed to the bot.
+  // No-op when MENTION_REQUIRED=false (default) or in private chats.
+  bot.use(mentionGateMiddleware);
 
   // /cancel, /reset, and /ping fire BEFORE sequentialize so they bypass per-chat ordering.
   // This lets them interrupt a running query without waiting for it to finish.

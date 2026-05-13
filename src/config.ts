@@ -20,6 +20,13 @@ const envSchema = z.object({
     .string()
     .default('')
     .transform((val) => val ? val.split(',').map((id) => parseInt(id.trim(), 10)) : []),
+  // When true, in group chats the bot only responds if @-mentioned,
+  // replied to, or addressed by a slash command. DMs are unaffected.
+  // Default false preserves existing behavior.
+  MENTION_REQUIRED: z
+    .string()
+    .default('false')
+    .transform((val) => val.toLowerCase() === 'true'),
   ANTHROPIC_API_KEY: z.string().optional(), // Optional - uses Claude Max subscription if not set
   // OpenAI (TTS)
   OPENAI_API_KEY: z.string().optional(),
