@@ -12,7 +12,7 @@ function hasBotMention(
   for (const ent of entities) {
     if (ent.type === 'bot_command') return true;
     if (ent.type === 'mention' && text) {
-      const slice = text.substr(ent.offset, ent.length).toLowerCase();
+      const slice = text.slice(ent.offset, ent.offset + ent.length).toLowerCase();
       if (slice === wanted) return true;
     }
     if (ent.type === 'text_mention' && ent.user?.id === botId) return true;
