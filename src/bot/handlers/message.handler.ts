@@ -24,6 +24,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getWorkspaceRoot, isPathWithinRoot } from '../../utils/workspace-guard.js';
 import { getSessionKeyFromCtx } from '../../utils/session-key.js';
+import { markProcessing, markSuccess, markError } from '../../telegram/message-reactions.js';
 
 async function replyFeatureDisabled(ctx: Context, feature: string): Promise<void> {
   await ctx.reply(`⚠️ ${feature} feature is disabled in configuration.`, { parse_mode: undefined });
@@ -281,6 +282,7 @@ export async function handleMessage(ctx: Context): Promise<void> {
     }
   }
 
+  await markProcessing(ctx);
   try {
     // Queue the request - process one at a time per session
     await queueRequest(sessionKey, text, async () => {
@@ -290,7 +292,9 @@ export async function handleMessage(ctx: Context): Promise<void> {
         await handleWaitResponse(ctx, sessionKey, chatId, text);
       }
     });
+    await markSuccess(ctx);
   } catch (error) {
+    await markError(ctx);
     if ((error as Error).message === 'Queue cleared') {
       return;
     }
@@ -432,6 +436,7 @@ async function handleAgentReply(
     return;
   }
 
+  await markProcessing(ctx);
   try {
     await queueRequest(sessionKey, trimmedInput, async () => {
       const startTime = Date.now();
@@ -482,7 +487,9 @@ async function handleAgentReply(
         throw error;
       }
     });
+    await markSuccess(ctx);
   } catch (error) {
+    await markError(ctx);
     if ((error as Error).message === 'Queue cleared') return;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     await ctx.reply(`❌ Error: ${esc(errorMessage)}`, { parse_mode: 'MarkdownV2' });
