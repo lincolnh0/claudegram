@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
+ecosystem.config.cjs
 *.log
 .DS_Store
 .telegraph-account.json
@@ -20,3 +23,4 @@ MEDIUM_*.md
 # Local Python scripts (Medium scraper tooling)
 scripts/medium_fetch.py
 scripts/medium_login.py
+persona

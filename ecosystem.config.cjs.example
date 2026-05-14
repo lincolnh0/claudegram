@@ -1,0 +1,54 @@
+// PM2 ecosystem config for running multiple Claudegram instances side-by-side,
+// each with its own bot token, workspace, and (optionally) persona. Each app
+// points CLAUDEGRAM_ENV_PATH at its own .env.<name>, which src/config.ts loads
+// instead of the default .env.
+//
+// Setup:
+//   cp ecosystem.config.cjs.example ecosystem.config.cjs
+//   cp .env.example .env.personal && edit
+//   cp .env.example .env.work     && edit
+//
+// Run:
+//   npm run build
+//   pm2 start ecosystem.config.cjs
+//   pm2 start ecosystem.config.cjs --only claudegram-work
+//   pm2 save && pm2 startup   # persist across reboots
+//
+// Each .env.<name> MUST have a unique TELEGRAM_BOT_TOKEN, and should set
+// distinct WORKSPACE_DIR (and OPENCODE_PORT if OpenCode is enabled). If you
+// use PERSONA_FILE, point each instance at its own persona markdown file.
+
+const path = require('path');
+
+const ROOT = __dirname;
+
+function app(name, envFile) {
+  return {
+    name: `claudegram-${name}`,
+    script: 'dist/index.js',
+    cwd: ROOT,
+    env: {
+      CLAUDEGRAM_ENV_PATH: path.join(ROOT, envFile),
+      NODE_ENV: 'production',
+      // The Claude Code SDK refuses to launch if CLAUDECODE is set in the
+      // parent env (it assumes a nested session). pm2 may have inherited it
+      // from whatever shell launched pm2 — blank it out for the bot process.
+      // src/index.ts also `delete`s these at startup as a belt-and-braces.
+      CLAUDECODE: '',
+      CLAUDE_CODE_ENTRYPOINT: '',
+    },
+    max_restarts: 10,
+    restart_delay: 4000,
+    out_file: path.join(ROOT, `claudegram.${name}.log`),
+    error_file: path.join(ROOT, `claudegram.${name}.log`),
+    merge_logs: true,
+    time: true,
+  };
+}
+
+module.exports = {
+  apps: [
+    app('personal', '.env.personal'),
+    app('work', '.env.work'),
+  ],
+};
