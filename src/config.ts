@@ -46,6 +46,10 @@ const envSchema = z.object({
     .default('true')
     .transform((val) => val.toLowerCase() === 'true'),
   BOT_NAME: z.string().default('Claudegram'),
+  // Optional markdown file whose contents are appended to the system prompt
+  // as a persona / character guideline. Path may be absolute or relative to
+  // the process working directory. Empty = no persona injected.
+  PERSONA_FILE: z.string().default(''),
   BOT_MODE: z.enum(['dev', 'prod']).default('dev'),
   STREAMING_MODE: z.enum(['streaming', 'wait']).default('streaming'),
   STREAMING_DEBOUNCE_MS: z

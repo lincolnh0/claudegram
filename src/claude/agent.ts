@@ -13,6 +13,7 @@ import {
   type McpServerConfig,
 } from '@anthropic-ai/claude-agent-sdk';
 import * as fs from 'fs';
+import * as path from 'path';
 import { sessionManager } from './session-manager.js';
 import { setActiveQuery, clearActiveQuery, isCancelled } from './request-queue.js';
 import type { Context } from 'grammy';
@@ -98,6 +99,23 @@ Guidelines:
 - If a task requires multiple steps, execute them and summarize what you did
 - When you can't do something, explain why briefly`;
 
+const PERSONA_GUIDELINE: string = (() => {
+  if (!config.PERSONA_FILE) return '';
+  const resolved = path.isAbsolute(config.PERSONA_FILE)
+    ? config.PERSONA_FILE
+    : path.resolve(process.cwd(), config.PERSONA_FILE);
+  try {
+    const content = fs.readFileSync(resolved, 'utf-8').trim();
+    if (!content) return '';
+    console.log(`[Persona] Loaded persona guideline from ${resolved} (${content.length} chars)`);
+    return `\n\nPersona:\n${content}`;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[Persona] Failed to read PERSONA_FILE at ${resolved}: ${msg}`);
+    return '';
+  }
+})();
+
 const TELEGRAPH_FORMATTING = `
 
 Response Formatting — Telegraph-Aware Writing:
@@ -173,7 +191,7 @@ Instead of tables (which don't render well in Telegram), use bullet lists with b
 - **Age**: 30
 - **City**: NYC`;
 
-const BASE_SYSTEM_PROMPT = CORE_GUIDELINES + (config.TELEGRAPH_ENABLED ? TELEGRAPH_FORMATTING : INLINE_FORMATTING);
+const BASE_SYSTEM_PROMPT = CORE_GUIDELINES + PERSONA_GUIDELINE + (config.TELEGRAPH_ENABLED ? TELEGRAPH_FORMATTING : INLINE_FORMATTING);
 
 const REDDIT_TOOL_PROMPT = `
 
