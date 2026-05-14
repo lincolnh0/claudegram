@@ -60,6 +60,20 @@ This is not a simple API wrapper. It's the real Claude Code agent with tool acce
 - Telegraph Instant View, save as Markdown, or both
 - Pure TypeScript, no Python/Playwright needed
 
+### Group Chats
+- Whitelist groups via `ALLOWED_GROUP_IDS`
+- `MENTION_REQUIRED=true` makes the bot only respond when @-mentioned or replied to — quiet in noisy groups, loud when you call it
+- Replies to its own messages always count as a mention
+
+### Message Reactions
+- 👀 placed on your message while the agent is working
+- 👌 on success, 💔 if the run errored
+- Quick visual ack without spamming the chat with status messages
+
+### Persona Mode
+- Point `PERSONA_FILE` at a markdown file and its contents are appended to the system prompt
+- Per-instance personas pair well with the PM2 multi-instance setup below
+
 </td>
 <td width="50%" valign="top">
 
@@ -95,6 +109,11 @@ This is not a simple API wrapper. It's the real Claude Code agent with tool acce
 - Send photos or image docs in chat
 - Saved to project under `.claudegram/uploads/`
 - Claude is notified with path + caption
+
+### Multi-Instance (PM2)
+- Run several bots from one checkout with `ecosystem.config.cjs`
+- Each app loads its own `.env.<name>` via `CLAUDEGRAM_ENV_PATH`
+- Distinct tokens, workspaces, and personas per instance
 
 </td>
 </tr>
@@ -273,10 +292,18 @@ All config lives in `.env`. See [`.env.example`](.env.example) for the full anno
 | `WORKSPACE_DIR` | `$HOME` | Root directory for project picker |
 | `CLAUDE_EXECUTABLE_PATH` | `claude` | Path to Claude Code CLI |
 | `BOT_NAME` | `Claudegram` | Bot name in system prompt |
+| `PERSONA_FILE` | — | Markdown file appended to system prompt as persona/character guideline |
 | `STREAMING_MODE` | `streaming` | `streaming` or `wait` |
 | `DANGEROUS_MODE` | `false` | Auto-approve all tool permissions |
 | `CANCEL_ON_NEW_MESSAGE` | `false` | Auto-cancel running query on new message |
 | `CLAUDE_SDK_LOG_LEVEL` | `off` | SDK log level: off, basic, verbose, trace |
+
+### Group Chats
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ALLOWED_GROUP_IDS` | — | Comma-separated Telegram group/supergroup IDs that can use the bot |
+| `MENTION_REQUIRED` | `false` | In groups, only respond when the bot is @-mentioned or replied to |
 
 ### Reddit
 
@@ -407,6 +434,26 @@ If Claudegram is editing its own codebase, use **prod mode** to avoid hot-reload
 ```
 
 Then `/continue` or `/resume` in Telegram to restore your session.
+
+---
+
+## Running multiple instances (PM2)
+
+Run several Claudegram bots from one checkout — each with its own Telegram token, workspace, and (optionally) persona.
+
+```bash
+cp ecosystem.config.cjs.example ecosystem.config.cjs
+cp .env.example .env.personal  # edit: token, workspace, persona…
+cp .env.example .env.work
+npm run build
+pm2 start ecosystem.config.cjs
+pm2 start ecosystem.config.cjs --only claudegram-work
+pm2 save && pm2 startup        # persist across reboots
+```
+
+Each app sets `CLAUDEGRAM_ENV_PATH` to point at its `.env.<name>`, which `src/config.ts` loads instead of the default `.env`. `.env.*` files are gitignored.
+
+Edit the `apps` array in `ecosystem.config.cjs` to add more instances. Each `.env.<name>` must have a unique `TELEGRAM_BOT_TOKEN` and should set a distinct `WORKSPACE_DIR` (and `PERSONA_FILE` if you want different personalities per bot).
 
 ---
 
