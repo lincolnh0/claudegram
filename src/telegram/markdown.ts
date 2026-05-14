@@ -3,35 +3,72 @@ import { convert } from 'telegram-markdown-v2';
 // Telegram limits
 const MAX_MESSAGE_LENGTH = 4096;
 
-/**
- * Convert standard markdown to Telegram MarkdownV2 format
- */
+// Telegram MarkdownV2 has no headings — they collapse to plain bold, which is
+// indistinguishable from inline **bold**. We add a per-level emoji prefix so
+// section breaks stand out, and ensure a blank line above and below.
+const HEADING_PREFIX: Record<number, string> = {
+  1: '📌',
+  2: '▸',
+  3: '·',
+  4: '·',
+  5: '·',
+  6: '·',
+};
+
 export function convertToTelegramMarkdown(text: string): string {
   try {
-    // Pre-process: convert thematic breaks (---, ***, ___) to a unicode separator,
-    // but only outside fenced code blocks. The telegram-markdown-v2 library doesn't
-    // handle these and leaves *** intact, which Telegram then misinterprets as an
-    // unterminated bold/italic entity.
-    const preprocessed = replaceThematicBreaksOutsideCode(text);
+    const preprocessed = preprocessOutsideCode(text);
     return convert(preprocessed, 'escape');
   } catch (error) {
     console.error('Markdown conversion error:', error);
-    // Fallback: escape special characters manually
     return escapeMarkdownV2(text);
   }
 }
 
 /**
- * Replace thematic breaks (***, ---, ___) only outside fenced code blocks.
- * Splits on ``` boundaries and only applies the replacement to non-code segments.
+ * Run all non-code preprocessing passes on the source markdown.
+ * Splits on ``` fences and only transforms segments outside them.
  */
-function replaceThematicBreaksOutsideCode(text: string): string {
+function preprocessOutsideCode(text: string): string {
   const parts = text.split(/(```[\s\S]*?```)/g);
   return parts.map((segment, i) => {
     // Odd indices are the fenced code blocks captured by the regex
     if (i % 2 === 1) return segment;
-    return segment.replace(/^[ \t]*([\*\-_]){3,}[ \t]*$/gm, '———');
+    let s = transformHeadings(segment);
+    // Thematic breaks (---, ***, ___) — the library leaves *** intact and
+    // Telegram then sees it as an unterminated bold/italic entity.
+    s = s.replace(/^[ \t]*([\*\-_]){3,}[ \t]*$/gm, '———');
+    return s;
   }).join('');
+}
+
+/**
+ * Convert ATX headings (#, ##, ###, …) to bold lines with a level-specific
+ * prefix, and enforce a blank line on either side so they read as section
+ * breaks rather than inline bold.
+ */
+function transformHeadings(text: string): string {
+  const inputLines = text.split('\n');
+  const output: string[] = [];
+  for (let i = 0; i < inputLines.length; i++) {
+    const line = inputLines[i];
+    const m = line.match(/^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/);
+    if (!m) {
+      output.push(line);
+      continue;
+    }
+    const level = m[1].length;
+    const title = m[2].trim();
+    const prefix = HEADING_PREFIX[level] ?? '·';
+    if (output.length > 0 && output[output.length - 1].trim() !== '') {
+      output.push('');
+    }
+    output.push(`**${prefix} ${title}**`);
+    if (i + 1 < inputLines.length && inputLines[i + 1].trim() !== '') {
+      output.push('');
+    }
+  }
+  return output.join('\n');
 }
 
 /**
