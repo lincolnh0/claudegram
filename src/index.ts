@@ -1,3 +1,11 @@
+// Strip Claude Code session markers before any SDK import: if our process
+// was launched from inside a Claude Code session (or pm2 inherited it),
+// the agent SDK refuses to start a child claude process. Empty-string in
+// pm2's env config isn't enough — the SDK checks for var presence, so we
+// must `delete` it.
+delete process.env.CLAUDECODE;
+delete process.env.CLAUDE_CODE_ENTRYPOINT;
+
 import { run } from '@grammyjs/runner';
 import { createBot } from './bot/bot.js';
 import { config } from './config.js';
