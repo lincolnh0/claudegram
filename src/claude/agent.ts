@@ -547,6 +547,11 @@ export async function sendToAgent(
         for (const block of responseMessage.message.content) {
           logAt('trace', '[Claude] Block type:', block.type);
           if (block.type === 'text') {
+            // Text blocks are discrete segments (often split around tool uses);
+            // preserve a paragraph break between them so they don't run together.
+            if (fullText.length > 0 && !fullText.endsWith('\n\n')) {
+              fullText += fullText.endsWith('\n') ? '\n' : '\n\n';
+            }
             fullText += block.text;
             onProgress?.(fullText);
           } else if (block.type === 'tool_use') {
